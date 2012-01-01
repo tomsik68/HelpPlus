@@ -1,0 +1,13 @@
+name: HelpPlus
+main: sk.tomsik68.helpplus.HelpPlus
+author: Tomsik68
+version: 0.1
+commands:
+    hp:
+        usage: /hp [page]
+        aliases: /help
+        description: Displays help
+    help:
+        usage: /help [page]
+        aliases: /hp
+        description: Displays help
