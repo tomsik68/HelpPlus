@@ -31,9 +31,11 @@ import org.bukkit.plugin.java.JavaPlugin;
  * @author Tomsik68
  */
 public class HelpPlus extends JavaPlugin {
-	public static int commandsPerPage = 10;
+	public static int commandsPerPage = 7;
 	private final List<Command> commands;
 	private final ChatColor def= ChatColor.BLUE;
+	private final ChatColor def1= ChatColor.GOLD;
+	private final ChatColor def2= ChatColor.GREEN;
     public HelpPlus(){
         super();
         commands = (new ArrayList<Command>());
@@ -65,9 +67,9 @@ public class HelpPlus extends JavaPlugin {
 		}
 		int commandsOnPage = 0;
 		if (cmd.length == 0) {
-			player.sendMessage(def+"[HelpPlus] Available Commands Page 1 of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
+			player.sendMessage(def1+"[HelpPlus] Available Commands Page 1 of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
 			for (Command ppc : commands) {
-				player.sendMessage(def + " /" + ppc.getName() + " - " + ppc.getDescription());
+				player.sendMessage(def + " /" + ppc.getName() + " - " +def2+ ppc.getDescription());
 				commandsOnPage++;
 				if (commandsOnPage == HelpPlus.commandsPerPage)
 					break;
@@ -75,14 +77,14 @@ public class HelpPlus extends JavaPlugin {
 		} else if (cmd.length == 1) {
 			try {
 				Integer page = Integer.valueOf(cmd[0]);
-				player.sendMessage(def+"[HelpPlus] Available Commands Page " + page + " of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
+				player.sendMessage(def1+"[HelpPlus] Available Commands Page " + page + " of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
 				for (int i = page * HelpPlus.commandsPerPage; i < page * 2 * HelpPlus.commandsPerPage;) {
 					Command ppc = commands.get(i);
 					// no more commands to display
 					if (ppc == null) {
 						break;
 					}
-					player.sendMessage(def + " /" + ppc.getName() + " - " + ppc.getDescription());
+					player.sendMessage(def + " /" + ppc.getName() + " - " +def2+ ppc.getDescription());
 					i++;
 					if (commands.size() <= i)
 						break;
@@ -95,12 +97,18 @@ public class HelpPlus extends JavaPlugin {
 				for (Command comm : commands) {
 					i++;
 					if (comm.getName().equalsIgnoreCase(cmdName)) {
-						player.sendMessage(def+"[HelpPlus] Command #"+i+" of "+commands.size());
-						player.sendMessage(def + "Command: /" + comm.getName());
-						player.sendMessage(def + "Description: " + comm.getDescription());
-						player.sendMessage(def + "Usage: " + comm.getUsage());
-						player.sendMessage(def + "Permission needed: " + comm.getPermission());
-						player.sendMessage(def + "Can you use it(as of bukkit's permissions)?: "+comm.testPermission(player));
+						player.sendMessage(def1+"[HelpPlus] Command #"+i+" of "+commands.size());
+						player.sendMessage(def + "Command: "+def2+ "/" + comm.getName());
+						player.sendMessage(def + "Description: "+def2 + comm.getDescription());
+						player.sendMessage(def + "Usage: "+def2 + comm.getUsage());
+						player.sendMessage(def + "Permission needed: "+def2 + comm.getPermission());
+						player.sendMessage(def + "Can you use it(as of bukkit's permissions)?: "+def2+(comm.testPermission(player) ? "Yes" : "No"));
+						StringBuilder aliases = new StringBuilder();
+						for(String s : comm.getAliases()){
+							aliases = aliases.append(s).append(',');
+						}
+						aliases = aliases.deleteCharAt(aliases.length() - 1);
+						player.sendMessage(def + "Aliases: "+def2+aliases.toString());
 						return true;
 					}
 				}
