@@ -1,7 +1,8 @@
 name: HelpPlus
 main: sk.tomsik68.helpplus.HelpPlus
 author: Tomsik68
-version: 0.1
+version: 0.2
+description: Plugin which provides helpful information about commands
 commands:
     hp:
         usage: /hp [page]
