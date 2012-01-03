@@ -10,12 +10,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.PluginCommandYamlParser;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -23,7 +25,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import sk.tomsik68.permsguru.EPermissionSystem;
+
 
 /**
  * HelpPlus for Bukkit
@@ -37,7 +39,7 @@ public class HelpPlus extends JavaPlugin {
 	private ChatColor def1 = ChatColor.GOLD;
 	private ChatColor def2 = ChatColor.GREEN;
 	private EPermissionSystem perms = EPermissionSystem.None;
-	private boolean showPlugin = true;
+	private boolean commandsLoaded = false, showPlugin = true;
 
 	public HelpPlus() {
 		super();
@@ -52,7 +54,6 @@ public class HelpPlus extends JavaPlugin {
 		getCommand("help").setExecutor(this);
 		getCommand("hp").setExecutor(this);
 		FileConfiguration config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "config.yml"));
-		;
 		if (new File(getDataFolder(), "config.yml").exists()) {
 			perms = EPermissionSystem.valueOf(config.getString("perms"));
 			commandsPerPage = config.getInt("cmds-on-page");
@@ -60,6 +61,19 @@ public class HelpPlus extends JavaPlugin {
 			def1 = ChatColor.valueOf(config.getString("colors.b").toUpperCase());
 			def2 = ChatColor.valueOf(config.getString("colors.c").toUpperCase());
 			showPlugin = config.getBoolean("show.plugin");
+			try {
+				Set<String> overridenCommands = config.getConfigurationSection("commands").getKeys(false);
+				for (String name : overridenCommands) {
+					ConfigurationSection cs = config.getConfigurationSection("commands." + name);
+					if(cs.contains("name"))
+						name = cs.getString("name");
+					CommandInfo ci = new CommandInfo(name, cs.getString("usage"), cs.getString("description"),  cs.getStringList("aliases").toArray(new String[0]),
+							cs.getString("permission"), cs.getString("plugin", "<unknown>"));
+					commands.add(ci);
+				}
+			} catch (NullPointerException n) {
+
+			}
 		} else {
 			getDataFolder().mkdir();
 			try {
@@ -73,13 +87,13 @@ public class HelpPlus extends JavaPlugin {
 				config.set("colors.c", ChatColor.GREEN.name());
 				config.set("show.plugin", true);
 				config.save(new File(getDataFolder(), "config.yml"));
-				perms = EPermissionSystem.Server;
+				perms = EPermissionSystem.None;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-		if (!perms.getPermissor().setup(getServer())){
-			System.out.println("[HelpPlus] Can't setup permission system: "+perms.name()+" using default setting(no permissions)");
+		if (!perms.getPermissor().setup(getServer())) {
+			System.out.println("[HelpPlus] Can't setup permission system: " + perms.name() + " using default setting(no permissions)");
 			perms = EPermissionSystem.None;
 		}
 		perms.getPermissor().setup(getServer());
@@ -95,13 +109,14 @@ public class HelpPlus extends JavaPlugin {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] cmd) {
-		if (commands.isEmpty()) {
+		if (!commandsLoaded) {
 			for (Plugin plug : getServer().getPluginManager().getPlugins()) {
 				List<Command> plugComms = PluginCommandYamlParser.parse(plug);
-				for(Command c : plugComms){
-					commands.add(new CommandInfo((PluginCommand)c));
+				for (Command c : plugComms) {
+					commands.add(new CommandInfo((PluginCommand) c));
 				}
 			}
+			commandsLoaded = true;
 		}
 		int commandsOnPage = 0;
 		if (cmd.length == 0) {
@@ -116,9 +131,10 @@ public class HelpPlus extends JavaPlugin {
 			}
 		} else if (cmd.length == 1) {
 			try {
-				Integer page = Integer.valueOf(cmd[0]);
+				final int page = Integer.parseInt(cmd[0]);
 				sender.sendMessage(def1 + "[HelpPlus] Available Commands Page " + page + " of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
-				for (int i = page * HelpPlus.commandsPerPage; i < page * 2 * HelpPlus.commandsPerPage;) {
+				final int displayCommands = page * HelpPlus.commandsPerPage + HelpPlus.commandsPerPage;
+				for (int i = page * HelpPlus.commandsPerPage; i < displayCommands;) {
 					CommandInfo ci = commands.get(i);
 					// no more commands to display
 					if (ci == null) {
@@ -144,8 +160,8 @@ public class HelpPlus extends JavaPlugin {
 						sender.sendMessage(def + "Description: " + def2 + comm.getDescription());
 						sender.sendMessage(def + "Usage: " + def2 + comm.getUsage());
 						sender.sendMessage(def + "Permission needed: " + def2 + comm.getPermission());
-						if(showPlugin)
-							sender.sendMessage(def + "Plugin: "+def2+comm.getPlugin());
+						if (showPlugin)
+							sender.sendMessage(def + "Plugin: " + def2 + comm.getPlugin());
 						StringBuilder aliases = new StringBuilder();
 						for (String s : comm.getAliases()) {
 							aliases = aliases.append(s).append(',');

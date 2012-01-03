@@ -17,6 +17,14 @@ public class CommandInfo {
 		permission = command.getPermission();
 		command.getAliases().toArray(aliases);
 	}
+	public CommandInfo(String name,String usage, String desc,String[] aliases,String perm,String plugin){
+		this.name = name;
+		this.usage = usage;
+		this.description = desc;
+		this.aliases = aliases;
+		this.permission = perm;
+		this.plugin = plugin;
+	}
 	/**
 	 * @return the name
 	 */

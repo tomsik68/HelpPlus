@@ -29,7 +29,8 @@ public class PermissionsPermissor implements Permissor {
 
 	@Override
 	public boolean has(Player player, String node) {
-		
+		if(node == null)
+			return true;
 		return node == null || node.length() == 0 ||handler.has(player, node);
 	}
 
