@@ -26,7 +26,7 @@ public class ServerPermissor implements Permissor {
 	public boolean has(Player player, String node) {
 		if(node == null)
 			return true;
-		return node == null || node.length() == 0 || node.equals("null") || player.hasPermission(node);
+		return node.length() == 0 || node.equals("null") || player.hasPermission(node);
 	}
 
 	@Override

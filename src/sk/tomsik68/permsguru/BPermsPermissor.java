@@ -29,7 +29,7 @@ public class BPermsPermissor implements Permissor{
 	public boolean has(Player player, String node) {
 		if(node == null)
 			return true;
-		return node == null || node.length() == 0 || wpm.getPermissionSet(player.getWorld()).getPlayerNodes(player).contains(node);
+		return node.length() == 0 || wpm.getPermissionSet(player.getWorld()).getPlayerNodes(player).contains(node);
 	}
 
 	@Override

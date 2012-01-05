@@ -1,13 +1,10 @@
 package sk.tomsik68.helpplus;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.bukkit.command.PluginCommand;
 
 public class CommandInfo {
-	private final String name,usage,description,plugin,permission;
-	private final String[] aliases;
+	private String name,usage,description,plugin,permission;
+	private String[] aliases;
 	public CommandInfo(PluginCommand command) {
 		name = command.getName();
 		usage = command.getUsage();
@@ -49,10 +46,28 @@ public class CommandInfo {
 	public String getPlugin() {
 		return plugin;
 	}
-	public List<String> getAliases(){
-		return Arrays.asList(aliases);
+	public String[] getAliases(){
+		return aliases;
 	}
 	public String getPermission() {
 		return permission;
+	}
+	public void setName(String name2) {
+		name = name2;
+	}
+	public void setUsage(String usage2){
+		usage = usage2;
+	}
+	public void setDescription(String desc){
+		description = desc;
+	}
+	public void setPlugin(String plug){
+		plugin = plug;
+	}
+	public void setPermission(String perm){
+		permission = perm;
+	}
+	public void setAliases(String[] aliases){
+		this.aliases = aliases;
 	}
 }
