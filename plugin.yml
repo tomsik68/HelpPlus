@@ -1,14 +1,19 @@
 name: HelpPlus
 main: sk.tomsik68.helpplus.HelpPlus
 author: Tomsik68
-version: 0.2
+version: 0.5
 description: Plugin which provides helpful information about commands
+database: true
 commands:
     hp:
-        usage: /hp [page]
-        aliases: /help
+        usage: /hp [page | plugin]
+        aliases: ['/help','/h+']
         description: Displays help
     help:
-        usage: /help [page]
-        aliases: /hp
+        usage: /help [page | plugin]
+        aliases: ['/hp','/h+']
+        description: Displays help
+    h+:
+        usage: /h+ [page | plugin]
+        aliases: ['/hp','/help']
         description: Displays help
