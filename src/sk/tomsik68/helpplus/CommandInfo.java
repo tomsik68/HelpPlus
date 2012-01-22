@@ -11,15 +11,16 @@ import com.avaje.ebean.validation.NotNull;
 @Entity
 @Table(name = "help_plus")
 public class CommandInfo implements Comparable<CommandInfo> {
+	
 	@NotNull
 	@Length(max = 32)
 	@Id
 	public String name;
-	@Length(max = 32)
+	@Length(max=32)
 	public String plugin,permission;
-	@Length(max = 128)
+	@Length(max=768)
 	public String usage, description;
-	@Length(max = 96)
+	@Length(max = 128)
 	public String aliases;
 
 	public CommandInfo(PluginCommand command) {

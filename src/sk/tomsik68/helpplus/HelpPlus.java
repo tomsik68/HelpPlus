@@ -193,6 +193,7 @@ public class HelpPlus extends JavaPlugin {
 					sender.sendMessage(def + "Aliases: " + def2 + comm.getAliases());
 					return true;
 				}
+				//check if we have plugin called cmdName
 				if (getServer().getPluginManager().getPlugin(cmdName) != null) {
 					List<CommandInfo> plugComms = getAllCommands(cmdName);
 					int i = 0;
