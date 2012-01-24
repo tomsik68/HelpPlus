@@ -26,7 +26,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.avaje.ebean.Transaction;
-
 import sk.tomsik68.permsguru.EPermissions;
 
 /**
@@ -67,7 +66,7 @@ public class HelpPlus extends JavaPlugin {
 		}
 		config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "config.yml"));
 		if (new File(getDataFolder(), "config.yml").exists()) {
-			perms = EPermissions.valueOf(config.getString("perms"));
+			perms = EPermissions.valueOf(config.getString("perms","SP"));
 			commandsPerPage = config.getInt("cmds-on-page");
 			def = ChatColor.valueOf(config.getString("colors.a").toUpperCase());
 			def1 = ChatColor.valueOf(config.getString("colors.b").toUpperCase());
@@ -92,7 +91,7 @@ public class HelpPlus extends JavaPlugin {
 			try {
 				new File(getDataFolder(), "config.yml").createNewFile();
 				config = new YamlConfiguration();
-				config.set("perms", "Server");
+				config.set("perms", "SP");
 				config.set("cmds-on-page", 7);
 				config.set("colors.a", ChatColor.BLUE.name());
 				config.set("colors.b", ChatColor.GOLD.name());
@@ -193,7 +192,7 @@ public class HelpPlus extends JavaPlugin {
 					sender.sendMessage(def + "Aliases: " + def2 + comm.getAliases());
 					return true;
 				}
-				//check if we have plugin called cmdName
+				// check if we have plugin called cmdName
 				if (getServer().getPluginManager().getPlugin(cmdName) != null) {
 					List<CommandInfo> plugComms = getAllCommands(cmdName);
 					int i = 0;
@@ -254,9 +253,8 @@ public class HelpPlus extends JavaPlugin {
 		return getDatabase().find(CommandInfo.class).where().ieq("name", name).findList().isEmpty();
 	}
 
-	public void addCommand(final CommandInfo ci) {
+	public void addCommand(CommandInfo ci) {
 		Transaction transaction = getDatabase().beginTransaction();
-		
 		if (getDatabase().find(CommandInfo.class).where().ieq("name", ci.name) != null) {
 			List<CommandInfo> matchingStuff = getDatabase().find(CommandInfo.class).where().ieq("name", ci.getName()).findList();
 			for (CommandInfo com : matchingStuff) {
@@ -271,12 +269,14 @@ public class HelpPlus extends JavaPlugin {
 					ci.setPlugin(com.getPlugin());
 				if (com.getAliases() != null)
 					ci.setAliases(com.getAliases());
-				getDatabase().delete(com);
+				getDatabase().delete(com, transaction);
 			}
 		}
 		getDatabase().insert(ci, transaction);
+		
 		transaction.commit();
 		transaction.end();
+		getDatabase().endTransaction();
 	}
 
 	public int getCommandsCount() {

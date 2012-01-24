@@ -13,12 +13,9 @@ import com.avaje.ebean.validation.NotNull;
 public class CommandInfo implements Comparable<CommandInfo> {
 	
 	@NotNull
-	@Length(max = 32)
 	@Id
 	public String name;
-	@Length(max=32)
 	public String plugin,permission;
-	@Length(max=768)
 	public String usage, description;
 	@Length(max = 128)
 	public String aliases;
