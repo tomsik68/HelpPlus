@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -25,7 +28,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.avaje.ebean.Transaction;
 import sk.tomsik68.permsguru.EPermissions;
 
 /**
@@ -41,6 +43,7 @@ public class HelpPlus extends JavaPlugin {
 	private boolean commandsLoaded = false, showPlugin = true;
 	private EPermissions perms;
 	private FileConfiguration config;
+	public static Logger log;
 
 	public HelpPlus() {
 		super();
@@ -51,28 +54,33 @@ public class HelpPlus extends JavaPlugin {
 	public void onEnable() {
 		// Register our events
 		PluginDescriptionFile pdfFile = this.getDescription();
-		System.out.println("Enabling " + pdfFile.getName() + " version " + pdfFile.getVersion());
+		log = Logger.getLogger(pdfFile.getName());
+		log.addHandler(new ConsoleHandler());
+		log.getHandlers()[0].setFormatter(new PluginLogFormatter(pdfFile));
+		log.getHandlers()[0].setLevel(Level.INFO);
+		log.setParent(Logger.getLogger("Minecraft"));
+		log.info("Enabling...");
 		getCommand("help").setExecutor(this);
 		getCommand("hp").setExecutor(this);
 		getCommand("h+").setExecutor(this);
-		System.out.println("[HelpPlus] Checking DB...");
+		System.out.println("Checking DB...");
 		try {
 			getDatabase().find(CommandInfo.class).findRowCount();
-			System.out.println("Help+ table exists!");
+			log.info("DB is OK");
 		} catch (Exception e) {
-			System.out.println("Help+ table doesn't exist. Creating one...");
+			log.info("Installing DB due to first time usage");
 			installDDL();
-			System.out.println("Help+ table created.");
+			log.info("Database installed!");
 		}
-		config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "config.yml"));
 		if (new File(getDataFolder(), "config.yml").exists()) {
-			perms = EPermissions.valueOf(config.getString("perms","SP"));
+			config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "config.yml"));
+			perms = EPermissions.valueOf(config.getString("perms", "SP"));
 			commandsPerPage = config.getInt("cmds-on-page");
 			def = ChatColor.valueOf(config.getString("colors.a").toUpperCase());
 			def1 = ChatColor.valueOf(config.getString("colors.b").toUpperCase());
 			def2 = ChatColor.valueOf(config.getString("colors.c").toUpperCase());
 			showPlugin = config.getBoolean("show.plugin");
-			System.out.println("[HelpPlus] Found config file. Loading overrriden commands...");
+			log.info("Found config file. Loading overrriden commands...");
 			try {
 				HashSet<String> overridenCommands = new HashSet<String>(config.getConfigurationSection("commands").getKeys(false));
 				for (String name : overridenCommands) {
@@ -81,12 +89,12 @@ public class HelpPlus extends JavaPlugin {
 							cs.getString("plugin", "<unknown>"));
 					addCommand(ci);
 				}
-				System.out.println("[HelpPlus] Overriden commands loaded.");
+				log.info("Overriden commands loaded.");
 			} catch (NullPointerException n) {
-				System.out.println("[HelpPlus] No overriden commands were found.");
+				log.info("No overriden commands were found.");
 			}
 		} else {
-			System.out.println("[HelpPlus] Config file not found. Creating a new one...");
+			log.info("Config file not found. Creating a new one...");
 			getDataFolder().mkdir();
 			try {
 				new File(getDataFolder(), "config.yml").createNewFile();
@@ -98,12 +106,12 @@ public class HelpPlus extends JavaPlugin {
 				config.set("colors.c", ChatColor.GREEN.name());
 				config.set("show.plugin", true);
 				config.save(new File(getDataFolder(), "config.yml"));
-				perms = EPermissions.None;
+				perms = EPermissions.SP;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("[HelpPlus] Finally enabled. :)");
+		log.info("Finally enabled!");
 
 	}
 
@@ -118,7 +126,7 @@ public class HelpPlus extends JavaPlugin {
 	public void onDisable() {
 
 		// EXAMPLE: Custom code, here we just output some info so we can check all is well
-		System.out.println(this.getDescription().getName() + " is disabled!");
+		log.info("Disabled");
 	}
 
 	@Override
@@ -185,7 +193,11 @@ public class HelpPlus extends JavaPlugin {
 				if (comm != null && comm.getName().equalsIgnoreCase(cmdName) && isCommandDisplayed(sender, comm)) {
 					sender.sendMessage(def + "Command: " + def2 + "/" + comm.getName());
 					sender.sendMessage(def + "Description: " + def2 + comm.getDescription());
-					sender.sendMessage(def + "Usage: " + def2 + comm.getUsage());
+					if (comm.getUsage().length() > 20) {
+						sender.sendMessage(def + "[Usage of this command is too long to be displayed");
+						sender.sendMessage(def + "Use " + command.getLabel() + " <page> to display it.]");
+					} else
+						sender.sendMessage(def + "Usage: " + def2 + comm.getUsage());
 					sender.sendMessage(def + "Permission needed: " + def2 + comm.getPermission());
 					if (showPlugin)
 						sender.sendMessage(def + "Plugin: " + def2 + comm.getPlugin());
@@ -250,11 +262,11 @@ public class HelpPlus extends JavaPlugin {
 	}
 
 	public boolean commandExists(String name) {
-		return getDatabase().find(CommandInfo.class).where().ieq("name", name).findList().isEmpty();
+		boolean b = getDatabase().find(CommandInfo.class).where().ieq("name", name).findList().isEmpty();
+		return b;
 	}
 
 	public void addCommand(CommandInfo ci) {
-		Transaction transaction = getDatabase().beginTransaction();
 		if (getDatabase().find(CommandInfo.class).where().ieq("name", ci.name) != null) {
 			List<CommandInfo> matchingStuff = getDatabase().find(CommandInfo.class).where().ieq("name", ci.getName()).findList();
 			for (CommandInfo com : matchingStuff) {
@@ -269,25 +281,25 @@ public class HelpPlus extends JavaPlugin {
 					ci.setPlugin(com.getPlugin());
 				if (com.getAliases() != null)
 					ci.setAliases(com.getAliases());
-				getDatabase().delete(com, transaction);
+				getDatabase().delete(com);
 			}
 		}
-		getDatabase().insert(ci, transaction);
-		
-		transaction.commit();
-		transaction.end();
-		getDatabase().endTransaction();
+		getDatabase().save(ci);
 	}
 
 	public int getCommandsCount() {
-		return getDatabase().find(CommandInfo.class).findRowCount();
+		int i = getDatabase().find(CommandInfo.class).findRowCount();
+		return i;
 	}
 
 	public List<CommandInfo> getAllCommands() {
-		return getDatabase().find(CommandInfo.class).orderBy("name").findList();
+		List<CommandInfo> result = getDatabase().find(CommandInfo.class).orderBy("name").findList();
+		return result;
 	}
 
 	public List<CommandInfo> getAllCommands(final String plugin) {
-		return getDatabase().find(CommandInfo.class).where().ieq("plugin", plugin).orderBy("name").findList();
+		List<CommandInfo> result = getDatabase().find(CommandInfo.class).where().ieq("plugin", plugin).orderBy("name").findList();
+		return result;
 	}
+
 }
