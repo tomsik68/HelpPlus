@@ -1,3 +1,9 @@
+/*
+ * This file is part of HelpPlus. HelpPlus is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any later version. HelpPlus is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have received
+ * a copy of the GNU General Public License along with HelpPlus. If not, see <http://www.gnu.org/licenses/>.
+ */
 package sk.tomsik68.helpplus;
 
 import javax.persistence.Entity;
@@ -11,18 +17,29 @@ import com.avaje.ebean.validation.NotNull;
 @Entity
 @Table(name = "help_plus")
 public class CommandInfo implements Comparable<CommandInfo> {
-	
-	@NotNull
 	@Id
+	@NotNull
 	public String name;
-	public String plugin,permission;
-	public String usage, description;
-	@Length(max = 128)
+	@Length(max=48)
+	public String plugin;
+	/** Someone really has nothing to do and invents what? A 256-char permission node!
+	 * 
+	 */
+	@Length(max=256)
+	public String permission;
+	@Length(max=16384)
+	/** Should've been usage, but it was causing a MYSQL error
+	 * 
+	 */
+	public String usgae;
+	@Length(max=16384)
+	public String description;
+	@Length(max=384)
 	public String aliases;
 
 	public CommandInfo(PluginCommand command) {
 		name = command.getName();
-		usage = command.getUsage();
+		usgae = command.getUsage();
 		description = command.getDescription();
 		plugin = command.getPlugin().getDescription().getName();
 		if (command.getAliases() != null) {
@@ -40,7 +57,7 @@ public class CommandInfo implements Comparable<CommandInfo> {
 
 	public CommandInfo(String name, String usage, String desc, String[] aliases, String perm, String plugin) {
 		this.name = name;
-		this.usage = usage;
+		this.usgae = usage;
 		this.description = desc;
 		if (aliases != null && aliases.length > 0) {
 			StringBuilder sb = new StringBuilder();
@@ -69,12 +86,6 @@ public class CommandInfo implements Comparable<CommandInfo> {
 		return name;
 	}
 
-	/**
-	 * @return the usage
-	 */
-	public String getUsage() {
-		return usage;
-	}
 
 	/**
 	 * @return the description
@@ -102,10 +113,6 @@ public class CommandInfo implements Comparable<CommandInfo> {
 		name = name2;
 	}
 
-	public void setUsage(String usage2) {
-		usage = usage2;
-	}
-
 	public void setDescription(String desc) {
 		description = desc;
 	}
@@ -125,6 +132,12 @@ public class CommandInfo implements Comparable<CommandInfo> {
 	@Override
 	public int compareTo(CommandInfo o) {
 		return name.compareTo(o.getName());
+	}
+	public String getUsgae(){
+		return usgae;
+	}
+	public void setUsgae(String s){
+		usgae = s;
 	}
 
 	@Override
