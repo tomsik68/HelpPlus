@@ -1,5 +1,5 @@
 name: HelpPlus
-version: 0.6
+version: 0.61
 author: Tomsik68<tomsik68@gmail.com>
 main: sk.tomsik68.helpplus.HelpPlus
 database: true
