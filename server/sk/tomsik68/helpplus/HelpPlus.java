@@ -29,8 +29,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.event.server.ServerEvent;
-import org.bukkit.help.HelpTopic;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -44,12 +42,15 @@ import sk.tomsik68.permsguru.EPermissions;
  */
 public class HelpPlus extends JavaPlugin {
     public static int commandsPerPage = 7;
+    
     private ChatColor def = ChatColor.BLUE;
-    private ChatColor def1 = ChatColor.GOLD;
+  //this color is used on more places...
+    public ChatColor def1 = ChatColor.GOLD;
     private ChatColor def2 = ChatColor.GREEN;
     private boolean showPlugin = true;
     private EPermissions perms;
     private FileConfiguration config;
+    private boolean permissedHelp;
     public static Logger log;
 
     public HelpPlus() {
@@ -58,13 +59,12 @@ public class HelpPlus extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Register our events
-        PluginDescriptionFile pdfFile = this.getDescription();
-        log = Logger.getLogger(pdfFile.getName());
+        log = getLogger();
         log.info("Enabling...");
         getCommand("help").setExecutor(this);
         getCommand("hp").setExecutor(this);
         getCommand("h+").setExecutor(this);
+        getCommand("hplisting").setExecutor(this);
         System.out.println("Checking DB...");
         try {
             getDatabase().find(CommandInfo.class).findRowCount();
@@ -82,12 +82,13 @@ public class HelpPlus extends JavaPlugin {
         }
         if (new File(getDataFolder(), "config.yml").exists()) {
             config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "config.yml"));
-            perms = EPermissions.valueOf(config.getString("perms", "SP"));
+            perms = EPermissions.parse(config.getString("perms", "SP"));
             commandsPerPage = config.getInt("cmds-on-page");
             def = ChatColor.valueOf(config.getString("colors.a").toUpperCase());
             def1 = ChatColor.valueOf(config.getString("colors.b").toUpperCase());
             def2 = ChatColor.valueOf(config.getString("colors.c").toUpperCase());
             showPlugin = config.getBoolean("show.plugin");
+            permissedHelp = config.getBoolean("help.perm", false);
             log.info("Found config file. Loading overrriden commands...");
             getServer().getScheduler().scheduleAsyncDelayedTask(this, new Runnable() {
                 public void run() {
@@ -190,10 +191,22 @@ public class HelpPlus extends JavaPlugin {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] cmd) {
+        if(command.getName().equalsIgnoreCase("hplisting")){
+            if (!perms.has(sender, "helpplus.listing")) {
+                sender.sendMessage(command.getPermissionMessage());
+                return true;
+            }
+            sender.sendMessage(def1+"[HelpPlus] Creating your listing please wait...");
+            getServer().getScheduler().scheduleAsyncDelayedTask(this, new ListingRunnable(sender));
+            return true;
+        }
+        if (!perms.has(sender, "helpplus.help") && permissedHelp) {
+            sender.sendMessage(command.getPermissionMessage());
+            return true;
+        }
         List<CommandInfo> commands = getAllCommands();
         int commandsOnPage = 0;
         if (cmd.length == 0) {
-
             sender.sendMessage(def1 + "[HelpPlus] Available Commands Page 1 of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
             for (int i = 0; commandsOnPage != HelpPlus.commandsPerPage && i < commands.size(); i++) {
                 if (isCommandDisplayed(sender, commands.get(i))) {
@@ -238,7 +251,7 @@ public class HelpPlus extends JavaPlugin {
                     sender.sendMessage(def + "Description: " + def2 + comm.getDescription());
                     if (comm.usgae.length() > 20) {
                         sender.sendMessage(def + "Usage: [too long]");
-                        sender.sendMessage(def + "Use /help " + comm.getName() + " <page> to display it.]");
+                        sender.sendMessage(def + "Use /help " + comm.getName() + " to display it.]");
                     } else
                         sender.sendMessage(def + "Usage: " + def2 + comm.usgae);
                     sender.sendMessage(def + "Permission needed: " + def2 + comm.getPermission());
@@ -294,9 +307,8 @@ public class HelpPlus extends JavaPlugin {
             // used for usage
             if (commandExists(cmd[0])) {
                 String usage = getCommandInfo(cmd[0]).getUsgae();
-                if (usage.length() > 1000) {
-
-                }
+                sender.sendMessage(def1 + "[HelpPlus] Usage of " + cmd[0] + ":");
+                sender.sendMessage(usage);
                 return true;
             }
             if (getServer().getPluginManager().getPlugin(pluginName) != null) {
@@ -316,7 +328,6 @@ public class HelpPlus extends JavaPlugin {
             sender.sendMessage(ChatColor.RED + "[HelpPlus] Plugin/Command '" + cmd[0] + "' not found");
         } else {
             sender.sendMessage(ChatColor.RED + "/help [page | command]");
-            sender.sendMessage(ChatColor.RED + "/hp [page | command]");
         }
         return true;
     }
@@ -333,7 +344,7 @@ public class HelpPlus extends JavaPlugin {
             }
             return false;
         }
-        return !(sender instanceof Player) || perms.has((Player) sender, ci.getPermission());
+        return !(sender instanceof Player) || perms.has(sender, ci.getPermission());
     }
 
     public CommandInfo getCommandInfo(final String name) {
@@ -365,7 +376,6 @@ public class HelpPlus extends JavaPlugin {
         int i = getDatabase().find(CommandInfo.class).findRowCount();
         return i;
     }
-
     public List<CommandInfo> getAllCommands() {
         List<CommandInfo> result = getDatabase().find(CommandInfo.class).orderBy("name").findList();
         return result;
@@ -389,5 +399,8 @@ public class HelpPlus extends JavaPlugin {
             System.out.println("Access to '" + obj.getClass().getName() + "'s field called '" + name + "' is illegal.");
         }
         return null;
+    }
+    public static HelpPlus getInstance(){
+        return (HelpPlus) Bukkit.getPluginManager().getPlugin("HelpPlus");
     }
 }

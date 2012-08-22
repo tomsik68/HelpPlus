@@ -1,5 +1,5 @@
 name: HelpPlus
-version: 0.61
+version: 0.8
 author: Tomsik68<tomsik68@gmail.com>
 main: sk.tomsik68.helpplus.HelpPlus
 database: true
@@ -14,3 +14,6 @@ commands:
     hp:
         description: Alias to help
         aliases: ['h+','help']
+    hplisting:
+        description: Lists all your commands and permission nodes.
+        permission: helpplus.listing

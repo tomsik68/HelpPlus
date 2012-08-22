@@ -29,7 +29,7 @@ public class CommandInfo implements Comparable<CommandInfo> {
 	public String permission;
 	@Length(max=16384)
 	/** Should've been usage, but it was causing a MYSQL error
-	 * 
+	 *  Length must be so big, because some commands also contain usage of their sub-commands.
 	 */
 	public String usgae;
 	@Length(max=16384)
