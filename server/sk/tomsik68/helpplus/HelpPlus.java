@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.PluginCommandYamlParser;
@@ -42,9 +43,9 @@ import sk.tomsik68.permsguru.EPermissions;
  */
 public class HelpPlus extends JavaPlugin {
     public static int commandsPerPage = 7;
-    
+
     private ChatColor def = ChatColor.BLUE;
-  //this color is used on more places...
+    // this color is used on more places...
     public ChatColor def1 = ChatColor.GOLD;
     private ChatColor def2 = ChatColor.GREEN;
     private boolean showPlugin = true;
@@ -118,12 +119,18 @@ public class HelpPlus extends JavaPlugin {
                                 addCommand(new CommandInfo(entry.getKey(), entry.getValue().getUsage().replaceAll("<command>", entry.getValue().getName()), entry.getValue().getDescription(), entry.getValue().getAliases().toArray(new String[0]), entry.getValue().getPermission(), "<unknown>"));
                             }
                             if (entry.getValue().getPermission() == null || entry.getValue().getPermission().length() == 0) {
-                                Bukkit.dispatchCommand(fakie, entry.getValue().getLabel());
+                                try {
+                                    Bukkit.dispatchCommand(fakie, entry.getValue().getLabel());
+                                } catch (CommandException ce) {
+                                    // failed to resolve permission for
+                                    // entry.getValue()
+                                }
                                 if (fakie.getPermissionsUsed().size() > 0) {
                                     entry.getValue().setPermission(fakie.getPermissionsUsed().get(0));
                                     fakie.getPermissionsUsed().clear();
                                 }
                             }
+
                         }
                         for (VanillaCommand vc : vanillaCommands) {
                             addCommand(new CommandInfo(vc.getName(), vc.getUsage(), vc.getDescription(), vc.getAliases().toArray(new String[0]), vc.getPermission(), "bukkit"));
@@ -191,12 +198,12 @@ public class HelpPlus extends JavaPlugin {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] cmd) {
-        if(command.getName().equalsIgnoreCase("hplisting")){
+        if (command.getName().equalsIgnoreCase("hplisting")) {
             if (!perms.has(sender, "helpplus.listing")) {
                 sender.sendMessage(command.getPermissionMessage());
                 return true;
             }
-            sender.sendMessage(def1+"[HelpPlus] Creating your listing please wait...");
+            sender.sendMessage(def1 + "[HelpPlus] Creating your listing please wait...");
             getServer().getScheduler().scheduleAsyncDelayedTask(this, new ListingRunnable(sender));
             return true;
         }
@@ -376,6 +383,7 @@ public class HelpPlus extends JavaPlugin {
         int i = getDatabase().find(CommandInfo.class).findRowCount();
         return i;
     }
+
     public List<CommandInfo> getAllCommands() {
         List<CommandInfo> result = getDatabase().find(CommandInfo.class).orderBy("name").findList();
         return result;
@@ -400,7 +408,8 @@ public class HelpPlus extends JavaPlugin {
         }
         return null;
     }
-    public static HelpPlus getInstance(){
+
+    public static HelpPlus getInstance() {
         return (HelpPlus) Bukkit.getPluginManager().getPlugin("HelpPlus");
     }
 }
