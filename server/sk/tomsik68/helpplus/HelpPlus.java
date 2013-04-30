@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of HelpPlus. HelpPlus is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free
+ * This file is part of  HelpPlus is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free
  * Software Foundation, either version 3 of the License, or (at your option) any later version. HelpPlus is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have received
  * a copy of the GNU General Public License along with HelpPlus. If not, see <http://www.gnu.org/licenses/>.
@@ -8,32 +8,27 @@ package sk.tomsik68.helpplus;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Logger;
+
+import javax.persistence.PersistenceException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.PluginCommandYamlParser;
-import org.bukkit.command.defaults.VanillaCommand;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import sk.tomsik68.bukkitbp.v1.PackageResolver;
+import sk.tomsik68.helpplus.valueguards.ConfigurationMD5Watcher;
+import sk.tomsik68.helpplus.valueguards.MD5ValueWatcher;
+import sk.tomsik68.helpplus.valueguards.PluginListMD5Watcher;
 import sk.tomsik68.permsguru.EPermissions;
 
 /**
@@ -48,25 +43,38 @@ public class HelpPlus extends JavaPlugin {
     // this color is used on more places...
     public ChatColor def1 = ChatColor.GOLD;
     private ChatColor def2 = ChatColor.GREEN;
-    private boolean showPlugin = true;
-    private EPermissions perms;
-    private FileConfiguration config;
-    private boolean permissedHelp;
-    public static Logger log;
+    private boolean indexingComplete = false;
 
-    public HelpPlus() {
-        super();
-    }
+    private boolean showPlugin = true;
+    public EPermissions perms;
+    public FileConfiguration config;
+    private boolean permissedHelp;
+
+    public boolean configOverride;
+    public static Logger log;
+    private final List<MD5ValueWatcher> watchers = Arrays.asList(new ConfigurationMD5Watcher(), new PluginListMD5Watcher());
 
     @Override
     public void onEnable() {
         log = getLogger();
+
+        try {
+            PackageResolver.init(Bukkit.class.getClassLoader());
+            CompatibilityChecker.performCheck();
+            log.info("Bukkit compatibility check complete :)");
+        } catch (Exception e) {
+            log.severe("Incompatible CraftBukkit. Plugin can't work :'(");
+            log.severe("Reason: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         log.info("Enabling...");
         getCommand("help").setExecutor(this);
         getCommand("hp").setExecutor(this);
         getCommand("h+").setExecutor(this);
         getCommand("hplisting").setExecutor(this);
-        System.out.println("Checking DB...");
+        getCommand("hpexport").setExecutor(new ExportCommand(this));
+        log.info("Checking DB...");
         try {
             getDatabase().find(CommandInfo.class).findRowCount();
             log.info("DB is OK");
@@ -76,7 +84,7 @@ public class HelpPlus extends JavaPlugin {
                 installDDL();
                 log.info("Database setup successful!");
             } catch (Exception e1) {
-                log.info("Can't install database. Since this is critical error, plugin will now disable itself. I'm sorry for inconvenience.");
+                log.severe("Can't install database. Since this is critical error, plugin will now disable itself. I'm sorry for inconvenience.");
                 e1.printStackTrace();
                 getServer().getPluginManager().disablePlugin(this);
             }
@@ -90,100 +98,49 @@ public class HelpPlus extends JavaPlugin {
             def2 = ChatColor.valueOf(config.getString("colors.c").toUpperCase());
             showPlugin = config.getBoolean("show.plugin");
             permissedHelp = config.getBoolean("help.perm", false);
-            log.info("Found config file. Loading overrriden commands...");
-            getServer().getScheduler().scheduleAsyncDelayedTask(this, new Runnable() {
+            configOverride = config.getBoolean("config-is-primary");
+
+        } else {
+            log.info("Config file not found. Creating a new one...");
+            getServer().getScheduler().runTaskAsynchronously(this, new Runnable() {
+                @Override
                 public void run() {
                     try {
-                        HashSet<String> overridenCommands = new HashSet<String>(config.getConfigurationSection("commands").getKeys(false));
-                        for (String name : overridenCommands) {
-                            ConfigurationSection cs = config.getConfigurationSection("commands." + name);
-                            CommandInfo ci = new CommandInfo(name, cs.getString("usage"), cs.getString("description"), null, cs.getString("permission"), cs.getString("plugin", "<unknown>"));
-                            addCommand(ci);
-                        }
-                        log.info("[HelpPlus] Overriden commands loaded.");
-                        log.info("[HelpPlus] Finally enabled!");
-                    } catch (NullPointerException n) {
-                        log.info("[HelpPlus] No overriden commands were found.");
-                    }
-                    try {
-                        Class.forName("org.bukkit.craftbukkit.CraftServer");
-                        Map<String, Command> commands = getField(getField(getServer(), "commandMap"), "knownCommands");
-                        Set<VanillaCommand> vanillaCommands = getField(getField(getServer(), "commandMap"), "fallbackCommands");
-                        FakePlayer fakie = new FakePlayer();
-                        for (Entry<String, Command> entry : commands.entrySet()) {
-                            if (commandExists(entry.getKey()))
-                                continue;
-                            if (entry.getValue() instanceof PluginCommand) {
-                                addCommand(new CommandInfo((PluginCommand) entry.getValue()));
-                            } else {
-                                addCommand(new CommandInfo(entry.getKey(), entry.getValue().getUsage().replaceAll("<command>", entry.getValue().getName()), entry.getValue().getDescription(), entry.getValue().getAliases().toArray(new String[0]), entry.getValue().getPermission(), "<unknown>"));
-                            }
-                            if (entry.getValue().getPermission() == null || entry.getValue().getPermission().length() == 0) {
-                                try {
-                                    Bukkit.dispatchCommand(fakie, entry.getValue().getLabel());
-                                } catch (CommandException ce) {
-                                    // failed to resolve permission for
-                                    // entry.getValue()
-                                }
-                                if (fakie.getPermissionsUsed().size() > 0) {
-                                    entry.getValue().setPermission(fakie.getPermissionsUsed().get(0));
-                                    fakie.getPermissionsUsed().clear();
-                                }
-                            }
-
-                        }
-                        for (VanillaCommand vc : vanillaCommands) {
-                            addCommand(new CommandInfo(vc.getName(), vc.getUsage(), vc.getDescription(), vc.getAliases().toArray(new String[0]), vc.getPermission(), "bukkit"));
-                        }
-                    } catch (Exception e) {
-                        System.out.println("[HelpPlus] CommandMap hooking failed. Probably not a craftbukkit server. Falling back to an API function.");
-                        System.out.println("[HelpPlus] Error trace: ");
-                        e.printStackTrace();
-                        for (Plugin plug : getServer().getPluginManager().getPlugins()) {
-                            List<Command> plugComms = PluginCommandYamlParser.parse(plug);
-                            for (Command c : plugComms) {
-                                CommandInfo ci = new CommandInfo((PluginCommand) c);
-                                addCommand(ci);
-                            }
-                        }
-                    }
-                    for (CommandInfo ci : getAllCommands()) {
-                        if (config.contains("commands." + ci.getName()))
-                            continue;
-                        config.set("commands." + ci.getName() + ".description", ci.getDescription());
-                        config.set("commands." + ci.getName() + ".usage", ci.usgae);
-                        config.set("commands." + ci.getName() + ".aliases", ci.getAliases());
-                        config.set("commands." + ci.getName() + ".permission", ci.getPermission());
-                        config.set("commands." + ci.getName() + ".plugin", ci.getPlugin());
-                    }
-                    try {
-                        config.save(new File(getDataFolder(), "config.yml"));
+                        getDataFolder().mkdir();
+                        new File(getDataFolder(), "config.yml").createNewFile();
+                        config = new YamlConfiguration();
+                        config.set("perms", "SP");
+                        config.set("cmds-on-page", 7);
+                        config.set("colors.a", ChatColor.BLUE.name());
+                        config.set("colors.b", ChatColor.GOLD.name());
+                        config.set("colors.c", ChatColor.GREEN.name());
+                        config.set("show.plugin", true);
+                        config.set("config-is-primary", true);
+                        perms = EPermissions.SP;
+                        saveConfig();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
             });
-        } else {
-            log.info("[HelpPlus] Config file not found. Creating a new one...");
-            getDataFolder().mkdir();
+        }
+        setIndexingComplete(true);
+        for (MD5ValueWatcher watcher : watchers) {
             try {
-                new File(getDataFolder(), "config.yml").createNewFile();
-                config = new YamlConfiguration();
-                config.set("perms", "SP");
-                config.set("cmds-on-page", 7);
-                config.set("colors.a", ChatColor.BLUE.name());
-                config.set("colors.b", ChatColor.GOLD.name());
-                config.set("colors.c", ChatColor.GREEN.name());
-                config.set("show.plugin", true);
-                config.save(new File(getDataFolder(), "config.yml"));
-                perms = EPermissions.SP;
-            } catch (IOException e) {
+                watcher.load();
+            } catch (Exception e) {
+                log.severe("Error while loading MD5s:");
+                e.printStackTrace();
+            }
+            try {
+                if (watcher.hasChanged())
+                    watcher.update();
+            } catch (Exception e) {
+                log.severe("Error while updating & computing MD5s: ");
                 e.printStackTrace();
             }
         }
-
     }
-
     @Override
     public List<Class<?>> getDatabaseClasses() {
         List<Class<?>> list = new ArrayList<Class<?>>();
@@ -193,7 +150,16 @@ public class HelpPlus extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        log.info("[HelpPlus] Disabled");
+        if (perms != null) {
+            for (MD5ValueWatcher watcher : watchers) {
+                try {
+                    watcher.save();
+                } catch (Exception e) {
+                    log.severe("Exception while saving data:");
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     @Override
@@ -204,63 +170,62 @@ public class HelpPlus extends JavaPlugin {
                 return true;
             }
             sender.sendMessage(def1 + "[HelpPlus] Creating your listing please wait...");
-            getServer().getScheduler().scheduleAsyncDelayedTask(this, new ListingRunnable(sender));
+            getServer().getScheduler().runTaskAsynchronously(this, new ListingRunnable(sender));
             return true;
         }
         if (!perms.has(sender, "helpplus.help") && permissedHelp) {
             sender.sendMessage(command.getPermissionMessage());
             return true;
         }
-        List<CommandInfo> commands = getAllCommands();
-        int commandsOnPage = 0;
+        if (!isIndexingComplete()) {
+            sender.sendMessage(def1 + "[HelpPlus] Commands are currently being indexed. Please try in few minutes.");
+            return true;
+        }
+        List<CommandInfo> commands = null;
+        commands = getAllCommandsFor(sender);
         if (cmd.length == 0) {
-            sender.sendMessage(def1 + "[HelpPlus] Available Commands Page 1 of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
-            for (int i = 0; commandsOnPage != HelpPlus.commandsPerPage && i < commands.size(); i++) {
+            sender.sendMessage(def1 + "[HelpPlus] Available Commands Page 1 of " + (Math.round(commands.size() / commandsPerPage) + 1));
+            for (int i = 0; i < commands.size() && i < commandsPerPage;) {
                 if (isCommandDisplayed(sender, commands.get(i))) {
                     CommandInfo ci = commands.get(i);
-                    commandsOnPage++;
                     sender.sendMessage(def + " /" + ci.getName() + " - " + def2 + ci.getDescription());
+                    i++;
                 }
             }
             return true;
         } else if (cmd.length == 1) {
             try {
                 final int page = Integer.parseInt(cmd[0]) - 1;
-                if (page > Math.floor(commands.size() / HelpPlus.commandsPerPage)) {
-                    sender.sendMessage(def1 + "[HelpPlus] Page number " + (page + 1) + "doesn't exist.");
+                if (page < 0 || page > ((int) (Math.ceil(commands.size() / commandsPerPage)))) {
+                    sender.sendMessage(def1 + "[HelpPlus] Page number " + (page + 1) + " doesn't exist.");
                     return true;
                 }
-                sender.sendMessage(def1 + "[HelpPlus] Available Commands Page " + (page + 1) + " of " + Math.round(commands.size() / HelpPlus.commandsPerPage));
+                sender.sendMessage(def1 + "[HelpPlus] Available Commands Page " + (page + 1) + " of " + ((int) Math.ceil(commands.size() / commandsPerPage) + 1));
                 int i = page * commandsPerPage;
-                final int displayCommands = i + HelpPlus.commandsPerPage;
-                List<CommandInfo> coms = new ArrayList<CommandInfo>(commands);
-                for (; i < displayCommands;) {
-                    CommandInfo ci = coms.get(i);
-                    // no more commands to display
-                    if (ci == null) {
-                        return true;
-                    }
+                final int displayCommands = i + commandsPerPage;
+                for (; i < displayCommands && i < commands.size();) {
+                    CommandInfo ci = commands.get(i);
                     if (isCommandDisplayed(sender, ci)) {
                         sender.sendMessage(def + " /" + ci.getName() + " - " + def2 + ci.getDescription());
                         i++;
                     }
                 }
-            } catch (Exception e) {
+            } catch (NumberFormatException e) {
                 String cmdName = cmd[0];
                 if (cmdName.startsWith("/"))
                     cmdName.replaceFirst("/", "");
                 CommandInfo comm = getCommandInfo(cmdName);
                 // fix for / in command name
                 if (comm == null)
-                    comm = getCommandInfo(cmdName);
+                    comm = getCommandInfo("/" + cmdName);
                 if (comm != null && comm.getName().equalsIgnoreCase(cmdName) && isCommandDisplayed(sender, comm)) {
                     sender.sendMessage(def + "Command: " + def2 + "/" + comm.getName());
                     sender.sendMessage(def + "Description: " + def2 + comm.getDescription());
-                    if (comm.usgae.length() > 20) {
+                    if (comm.usgae.length() > 125) {
                         sender.sendMessage(def + "Usage: [too long]");
-                        sender.sendMessage(def + "Use /help " + comm.getName() + " to display it.]");
+                        sender.sendMessage(def2 + "Use /help " + comm.getName() + " <page> to display it.]");
                     } else
-                        sender.sendMessage(def + "Usage: " + def2 + comm.usgae);
+                        sender.sendMessage(def + "Usage: " + def2 + comm.usgae.replace("<command>", comm.getName()));
                     sender.sendMessage(def + "Permission needed: " + def2 + comm.getPermission());
                     if (showPlugin)
                         sender.sendMessage(def + "Plugin: " + def2 + comm.getPlugin());
@@ -280,17 +245,17 @@ public class HelpPlus extends JavaPlugin {
                 if (getServer().getPluginManager().getPlugin(cmdName) != null) {
                     List<CommandInfo> plugComms = getAllCommands(cmdName);
                     int i = 0;
-                    for (CommandInfo ci : plugComms) {
+                    final int displayCommands = i + commandsPerPage;
+                    for (; i < displayCommands && i < plugComms.size();) {
+                        CommandInfo ci = plugComms.get(i);
                         if (isCommandDisplayed(sender, ci)) {
                             sender.sendMessage(def + " /" + ci.getName() + " - " + def2 + ci.getDescription());
                             i++;
                         }
-                        if (i == commandsPerPage)
-                            break;
                     }
                     return true;
                 }
-                sender.sendMessage(ChatColor.RED + "[HelpPlus] Command not found.");
+                sender.sendMessage(ChatColor.RED + "[HelpPlus] Command/Plugin not found.");
                 List<CommandInfo> similar = getSimilar(cmdName);
                 if (!similar.isEmpty()) {
                     sender.sendMessage(def + "[HelpPlus] You may have thought one of these: ");
@@ -301,7 +266,10 @@ public class HelpPlus extends JavaPlugin {
                     sb = sb.deleteCharAt(sb.length() - 2);
                     sender.sendMessage(sb.toString());
                 }
-
+                return true;
+            } catch (PersistenceException e) {
+                sender.sendMessage(def1 + "[HelpPlus] Database error. Beg admin to check console.");
+                e.printStackTrace();
             }
         } else if (cmd.length == 2) {
             String pluginName = cmd[0];
@@ -320,10 +288,16 @@ public class HelpPlus extends JavaPlugin {
             }
             if (getServer().getPluginManager().getPlugin(pluginName) != null) {
                 List<CommandInfo> plugComms = getAllCommands(pluginName);
-                sender.sendMessage(def1 + "[HelpPlus] Available Commands of " + pluginName + " Page " + page + " of " + Math.round(plugComms.size() / HelpPlus.commandsPerPage));
-                int i = page * commandsPerPage;
-                final int displayCommands = i + HelpPlus.commandsPerPage;
-                for (; i < displayCommands;) {
+
+                if (page - 1 < 0 || page - 1 > ((int) (Math.ceil(plugComms.size() / commandsPerPage)))) {
+                    sender.sendMessage(def1 + "[HelpPlus] Page number " + (page) + " of " + pluginName + "'s commands doesn't exist.");
+                    return true;
+                }
+
+                sender.sendMessage(def1 + "[HelpPlus] Available Commands of " + pluginName + " Page " + page + " of " + ((int) Math.ceil(plugComms.size() / commandsPerPage) + 1));
+                int i = (page - 1) * commandsPerPage;
+                final int displayCommands = i + commandsPerPage;
+                for (; i < displayCommands && i < plugComms.size();) {
                     CommandInfo ci = plugComms.get(i);
                     if (isCommandDisplayed(sender, ci)) {
                         sender.sendMessage(def + " /" + ci.getName() + " - " + def2 + ci.getDescription());
@@ -337,6 +311,18 @@ public class HelpPlus extends JavaPlugin {
             sender.sendMessage(ChatColor.RED + "/help [page | command]");
         }
         return true;
+    }
+
+    private List<CommandInfo> getAllCommandsFor(CommandSender sender) {
+        List<CommandInfo> allCommands = getAllCommands();
+        List<CommandInfo> result = new ArrayList<CommandInfo>();
+        for (CommandInfo ci : allCommands) {
+            if (ci.permission != null && ci.permission.length() > 0 && !ci.permission.equalsIgnoreCase("null")) {
+                if (sender.hasPermission(ci.permission))
+                    result.add(ci);
+            }
+        }
+        return result;
     }
 
     private boolean isCommandDisplayed(CommandSender sender, CommandInfo ci) {
@@ -385,7 +371,7 @@ public class HelpPlus extends JavaPlugin {
     }
 
     public List<CommandInfo> getAllCommands() {
-        List<CommandInfo> result = getDatabase().find(CommandInfo.class).orderBy("name").findList();
+        List<CommandInfo> result = new ArrayList<CommandInfo>(getDatabase().find(CommandInfo.class).orderBy("name").findList());
         return result;
     }
 
@@ -394,22 +380,26 @@ public class HelpPlus extends JavaPlugin {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
-    private final <T> T getField(Object obj, String name) {
-        try {
-            Class<?> clazz = obj.getClass();
-            Field field = clazz.getDeclaredField(name);
-            field.setAccessible(true);
-            return (T) field.get(obj);
-        } catch (NoSuchFieldException e) {
-            System.out.println("Class '" + obj.getClass().getName() + "' hasn't got field called '" + name + "'");
-        } catch (IllegalAccessException e) {
-            System.out.println("Access to '" + obj.getClass().getName() + "'s field called '" + name + "' is illegal.");
-        }
-        return null;
-    }
-
     public static HelpPlus getInstance() {
         return (HelpPlus) Bukkit.getPluginManager().getPlugin("HelpPlus");
+    }
+
+    public boolean isIndexingComplete() {
+        return indexingComplete;
+    }
+
+    public void setIndexingComplete(boolean indexingComplete) {
+        this.indexingComplete = indexingComplete;
+    }
+    public boolean isConfigPrimary() {
+        return this.configOverride;
+    }
+    @Override
+    public void saveConfig() {
+        try {
+            config.save(new File(getDataFolder(), "config.yml"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,19 +1,29 @@
 name: HelpPlus
-version: 0.81
-author: Tomsik68<tomsik68@gmail.com>
+version: 1.0.1
 main: sk.tomsik68.helpplus.HelpPlus
 database: true
-description: A plugin which provides helpful information about your commands.
 commands:
-    help:
-        description: Displays help about all your commands.
-        aliases: ['hp','h+']
-    h+:
-        description: Alias to help
-        aliases: ['hp','help']
-    hp:
-        description: Alias to help
-        aliases: ['h+','help']
-    hplisting:
-        description: Lists all your commands and permission nodes.
-        permission: helpplus.listing
+  help:
+    description: Brings on help
+    usage: /<command> [page/command/plugin]
+    aliases: ['h+','hp']
+  h+:
+    description: Brings on help
+    aliases: ['help','hp']
+    usage: /<command> [page/command/plugin]
+  hp:
+    description: Brings on help
+    aliases: ['h+','hp']
+    usage: /<command> [page/command/plugin]
+  hplisting:
+    description: Creates listing of all commands & permissions into single text file.
+    usage: /<command>
+  hpexport:
+    description: Exports specified command into config file for overriding.
+    usage: /hpexport <command name> | /hpexport -p <pattern>
+permissions:
+  helpplus.help:
+    description: Can be disabled via config file. Grants help-related commands. Defaultly true
+    default: true
+  helpplus.hpexport:
+    description: Allows /hpexport

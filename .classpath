@@ -2,6 +2,8 @@
 <classpath>
 	<classpathentry kind="src" path="server"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="/home/jasku/dev/lib/craftbukkit.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/PermissionsGuru"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/BukkitBypass"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/CraftBukkit"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
