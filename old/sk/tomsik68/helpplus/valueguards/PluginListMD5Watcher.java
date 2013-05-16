@@ -16,9 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandException;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.PluginCommandYamlParser;
 import org.bukkit.command.defaults.VanillaCommand;
@@ -26,7 +24,6 @@ import org.bukkit.plugin.Plugin;
 
 import sk.tomsik68.bukkitbp.v1.ReflectionUtils;
 import sk.tomsik68.helpplus.CommandInfo;
-import sk.tomsik68.helpplus.FakePlayer;
 import sk.tomsik68.helpplus.HelpPlus;
 
 public class PluginListMD5Watcher implements MD5ValueWatcher {
@@ -39,13 +36,7 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
 
     @Override
     public void update() throws Exception {
-        Bukkit.getScheduler().runTaskAsynchronously(HelpPlus.getInstance(), new Runnable() {
-
-            @Override
-            public void run() {
-                loadCommands(HelpPlus.getInstance());
-            }
-        });
+        loadCommands(HelpPlus.getInstance());
         md5 = compute(HelpPlus.getInstance());
     }
 
@@ -91,9 +82,6 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
             }
 
             for (Entry<String, Command> entry : commands.entrySet()) {
-                if (helpPlus.commandExists(entry.getKey())) {
-                    helpPlus.getDatabase().delete(helpPlus.getCommandInfo(entry.getKey()));
-                }
                 if (entry.getValue() instanceof PluginCommand) {
                     helpPlus.addCommand(new CommandInfo((PluginCommand) entry.getValue()));
                 } else {
@@ -104,8 +92,8 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
                 }
             }
             HelpPlus.log.info("Indexing complete!");
-            helpPlus.setIndexingComplete(true);
         } catch (Exception e) {
+            helpPlus.setIndexingComplete(false);
             HelpPlus.log.severe("CommandMap hooking failed. Falling back to an API function.");
             HelpPlus.log.severe("Error trace: ");
             e.printStackTrace();
@@ -116,31 +104,26 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
                     helpPlus.addCommand(ci);
                 }
             }
+            helpPlus.setIndexingComplete(true);
         }
     }
 
     private void resolvePermission(final String commandName, final HelpPlus plugin) {
         // this is meant to be run in other thread, since it seems to be slow...
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
-            @Override
-            public void run() {
-                FakePlayer fakie = new FakePlayer();
-                try {
-                    Bukkit.dispatchCommand(fakie, "/" + commandName);
-                    // update command information
-                    CommandInfo ci = plugin.getCommandInfo(commandName);
-                    StringBuilder sb = new StringBuilder();
-                    for (String p : fakie.getPermissionsUsed()) {
-                        sb = sb.append(p).append(';');
-                    }
-                    ci.setPermission(sb.toString());
-                    plugin.addCommand(ci);
-                    fakie.getPermissionsUsed().clear();
-                } catch (CommandException ce) {
-                    // failed to resolve permission for
-                    // entry.getValue()
-                }
-            }
-        });
+
+        /*
+         * plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new
+         * Runnable() {
+         * 
+         * @Override public void run() { FakePlayer fakie = new FakePlayer();
+         * try { Bukkit.dispatchCommand(fakie, "/" + commandName); // update
+         * command information CommandInfo ci =
+         * plugin.getCommandInfo(commandName); StringBuilder sb = new
+         * StringBuilder(); for (String p : fakie.getPermissionsUsed()) { sb =
+         * sb.append(p).append(';'); } ci.setPermission(sb.toString());
+         * plugin.addCommand(ci); fakie.getPermissionsUsed().clear(); } catch
+         * (CommandException ce) { // failed to resolve permission for //
+         * entry.getValue() } } });
+         */
     }
 }

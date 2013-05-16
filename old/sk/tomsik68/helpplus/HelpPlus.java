@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -54,6 +55,12 @@ public class HelpPlus extends JavaPlugin {
     public static Logger log;
     private final List<MD5ValueWatcher> watchers = Arrays.asList(new ConfigurationMD5Watcher(), new PluginListMD5Watcher());
 
+    public final OneTaskAtOnce schedule = new OneTaskAtOnce();
+
+    private int scheduleID;
+
+    private HashMap<String, CommandInfo> cmds = new HashMap<String, CommandInfo>();
+
     @Override
     public void onEnable() {
         log = getLogger();
@@ -89,6 +96,7 @@ public class HelpPlus extends JavaPlugin {
                 getServer().getPluginManager().disablePlugin(this);
             }
         }
+        scheduleID = getServer().getScheduler().runTaskTimer(this, schedule, 88L, 88L).getTaskId();
         if (new File(getDataFolder(), "config.yml").exists()) {
             config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "config.yml"));
             perms = EPermissions.parse(config.getString("perms", "SP"));
@@ -102,29 +110,26 @@ public class HelpPlus extends JavaPlugin {
 
         } else {
             log.info("Config file not found. Creating a new one...");
-            getServer().getScheduler().runTaskAsynchronously(this, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        getDataFolder().mkdir();
-                        new File(getDataFolder(), "config.yml").createNewFile();
-                        config = new YamlConfiguration();
-                        config.set("perms", "SP");
-                        config.set("cmds-on-page", 7);
-                        config.set("colors.a", ChatColor.BLUE.name());
-                        config.set("colors.b", ChatColor.GOLD.name());
-                        config.set("colors.c", ChatColor.GREEN.name());
-                        config.set("show.plugin", true);
-                        config.set("config-is-primary", true);
-                        perms = EPermissions.SP;
-                        saveConfig();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+
+            try {
+                getDataFolder().mkdir();
+                new File(getDataFolder(), "config.yml").createNewFile();
+                config = new YamlConfiguration();
+                config.set("perms", "SP");
+                config.set("cmds-on-page", 7);
+                config.set("colors.a", ChatColor.BLUE.name());
+                config.set("colors.b", ChatColor.GOLD.name());
+                config.set("colors.c", ChatColor.GREEN.name());
+                config.set("show.plugin", true);
+                config.set("config-is-primary", true);
+                perms = EPermissions.SP;
+                config.save(new File(getDataFolder(), "config.yml"));
+                log.info("Config file created.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-        setIndexingComplete(true);
+
         for (MD5ValueWatcher watcher : watchers) {
             try {
                 watcher.load();
@@ -140,7 +145,19 @@ public class HelpPlus extends JavaPlugin {
                 e.printStackTrace();
             }
         }
+        while (!schedule.hasFinished()) {
+
+        }
+        // free the HashMap
+        if (!cmds.isEmpty()) {
+            int a = getDatabase().save(cmds.values());
+
+        }
+        cmds = null;
+        setIndexingComplete(true);
+        log.info("Finally Enabled!");
     }
+
     @Override
     public List<Class<?>> getDatabaseClasses() {
         List<Class<?>> list = new ArrayList<Class<?>>();
@@ -159,6 +176,7 @@ public class HelpPlus extends JavaPlugin {
                     e.printStackTrace();
                 }
             }
+            getServer().getScheduler().cancelTask(scheduleID);
         }
     }
 
@@ -345,8 +363,7 @@ public class HelpPlus extends JavaPlugin {
     }
 
     public boolean commandExists(String name) {
-        boolean b = !getDatabase().find(CommandInfo.class).where().ieq("name", name).findList().isEmpty();
-        return b;
+        return !getDatabase().find(CommandInfo.class).where().ieq("name", name).findList().isEmpty();
     }
 
     public List<CommandInfo> getSimilar(String name) {
@@ -358,11 +375,7 @@ public class HelpPlus extends JavaPlugin {
     }
 
     public void addCommand(CommandInfo ci) {
-        if (getDatabase().find(CommandInfo.class).where().ieq("name", ci.name) != null) {
-            List<CommandInfo> matchingStuff = getDatabase().find(CommandInfo.class).where().ieq("name", ci.getName()).findList();
-            getDatabase().delete(matchingStuff);
-        }
-        getDatabase().save(ci);
+        cmds.put(ci.getName(), ci);
     }
 
     public int getCommandsCount() {
@@ -391,9 +404,11 @@ public class HelpPlus extends JavaPlugin {
     public void setIndexingComplete(boolean indexingComplete) {
         this.indexingComplete = indexingComplete;
     }
+
     public boolean isConfigPrimary() {
         return this.configOverride;
     }
+
     @Override
     public void saveConfig() {
         try {

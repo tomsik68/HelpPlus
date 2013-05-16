@@ -26,26 +26,23 @@ public class ConfigurationMD5Watcher implements MD5ValueWatcher {
     @Override
     public void update() throws Exception {
         final HelpPlus plugin = HelpPlus.getInstance();
-        if(!plugin.isConfigPrimary())
+        if (!plugin.isConfigPrimary())
             return;
         HelpPlus.log.info("Found config file difference. Loading overriden commands...");
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
-            public void run() {
-                try {
-                    HashSet<String> overridenCommands = new HashSet<String>(plugin.config.getConfigurationSection("commands").getKeys(false));
-                    for (String name : overridenCommands) {
-                        ConfigurationSection cs = plugin.config.getConfigurationSection("commands." + name);
-                        CommandInfo ci = new CommandInfo(name, cs.getString("usage"), cs.getString("description"), null, cs.getString("permission"), cs.getString("plugin", "<unknown>"));
-                        plugin.addCommand(ci);
-                    }
-                    HelpPlus.log.info("Overriden commands loaded.");
-                } catch (NullPointerException n) {
-                    HelpPlus.log.info("No overriden commands were found.");
-                }
-                HelpPlus.log.info("Finally enabled!");
-                plugin.setIndexingComplete(true);
+        long time = System.nanoTime();
+        try {
+            HashSet<String> overridenCommands = new HashSet<String>(plugin.config.getConfigurationSection("commands").getKeys(false));
+            for (String name : overridenCommands) {
+                ConfigurationSection cs = plugin.config.getConfigurationSection("commands." + name);
+                CommandInfo ci = new CommandInfo(name, cs.getString("usage"), cs.getString("description"), null, cs.getString("permission"), cs.getString("plugin", "<unknown>"));
+                plugin.addCommand(ci);
             }
-        });
+            HelpPlus.log.info("Overriden commands loaded.");
+        } catch (NullPointerException n) {
+            HelpPlus.log.info("No overriden commands were found.");
+        }
+        long took = System.nanoTime() - time;
+        HelpPlus.log.info("Config took " + took);
         compute(HelpPlus.getInstance());
     }
 
@@ -63,7 +60,7 @@ public class ConfigurationMD5Watcher implements MD5ValueWatcher {
 
     @Override
     public void save() throws Exception {
-        MD5Utils.writeBytes(new File(HelpPlus.getInstance().getDataFolder(), "plugins.md5"), md5);
+        MD5Utils.writeBytes(new File(HelpPlus.getInstance().getDataFolder(), "config.md5"), md5);
     }
 
 }
