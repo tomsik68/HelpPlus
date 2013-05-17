@@ -6,7 +6,12 @@ import java.util.logging.Logger;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import sk.tomsik68.helpplus.commands.ExportCommand;
 import sk.tomsik68.helpplus.commands.HelpCommand;
+import sk.tomsik68.helpplus.commands.ListingCommand;
+import sk.tomsik68.helpplus.config.CommandConfiguration;
+import sk.tomsik68.helpplus.config.ConfigurationFile;
+import sk.tomsik68.helpplus.valueguards.CommandsConfigWatcher;
 import sk.tomsik68.helpplus.valueguards.MD5ValueWatcher;
 import sk.tomsik68.helpplus.valueguards.PluginListMD5Watcher;
 import sk.tomsik68.permsguru.EPermissions;
@@ -14,31 +19,26 @@ import sk.tomsik68.permsguru.EPermissions;
 public class HelpPlus extends JavaPlugin {
     public static Logger log;
     public static EPermissions perms;
-    private ConfigurationFile cfg;
+    public static ConfigurationFile config;
+    public static CommandConfiguration commandsConfig;
     private CommandDatabase db;
+    private List<? extends MD5ValueWatcher> watchers;
 
     @Override
     public void onEnable() {
         log = getLogger();
         log.info("Enabling HelpPlus");
-        log.info("Checking CraftBukkit compatibility...");
-        try {
-            CompatibilityChecker.performCheck();
-        } catch (Exception e) {
-            log.info("Incompatible CraftBukkit. ");
-            log.info("Reason: ");
-            e.printStackTrace();
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
         db = new CommandDatabase(this);
         db.init(this);
-        cfg = new ConfigurationFile(getDataFolder());
-        cfg.init(this);
-        perms = cfg.getPermissions();
+        watchers = Arrays.asList(new PluginListMD5Watcher(db), new CommandsConfigWatcher(db));
+        config = new ConfigurationFile(getDataFolder());
+        config.init(this);
+        commandsConfig = new CommandConfiguration(getDataFolder());
+        commandsConfig.load();
+        perms = config.getPermissions();
         getCommand("help").setExecutor(new HelpCommand(db));
-        // TODO add moar watchers!
-        List<? extends MD5ValueWatcher> watchers = Arrays.asList(new PluginListMD5Watcher(db));
+        getCommand("hpexport").setExecutor(new ExportCommand(db));
+        getCommand("hplisting").setExecutor(new ListingCommand(db));
         for (MD5ValueWatcher watcher : watchers) {
             try {
                 watcher.load(getDataFolder());
@@ -47,6 +47,7 @@ public class HelpPlus extends JavaPlugin {
                     watcher.save(getDataFolder());
                 }
             } catch (Exception e) {
+                log.severe("MD5 value comparison failed: "+watcher.getClass());
                 e.printStackTrace();
             }
         }

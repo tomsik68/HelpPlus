@@ -1,9 +1,10 @@
-package sk.tomsik68.helpplus;
+package sk.tomsik68.helpplus.config;
 
 import java.io.File;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
+import sk.tomsik68.helpplus.HelpPlus;
 import sk.tomsik68.permsguru.EPermissions;
 
 public class ConfigurationFile {

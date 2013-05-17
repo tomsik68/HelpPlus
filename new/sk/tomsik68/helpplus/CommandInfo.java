@@ -6,19 +6,27 @@
  */
 package sk.tomsik68.helpplus;
 
+import java.util.List;
+import java.util.Map;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
 
 import com.avaje.ebean.validation.Length;
 import com.avaje.ebean.validation.NotNull;
 
 @Entity
 @Table(name = "help_plus")
-public class CommandInfo implements Comparable<CommandInfo> {
+public class CommandInfo implements Comparable<CommandInfo>, ConfigurationSerializable {
+    static{
+        ConfigurationSerialization.registerClass(CommandInfo.class);
+    }
     @Id
     @NotNull
     public String name;
@@ -58,7 +66,25 @@ public class CommandInfo implements Comparable<CommandInfo> {
         }
         permission = command.getPermission();
     }
+    // deserialize
+    public CommandInfo(Map<String, Object> map){
+        name = map.get("name").toString();
+        usgae = map.get("usage").toString();
+        description = map.get("description").toString();
+        String[] aliases_ = ((List<String>) map.get("aliases")).toArray(new String[0]);
+        if (aliases_ != null && aliases_.length > 0) {
+            StringBuilder sb = new StringBuilder();
+            for (String alias : aliases_) {
+                sb = sb.append(alias).append(',');
+            }
+            if (sb.length() > 0)
+                sb = sb.deleteCharAt(sb.length() - 1);
 
+            this.aliases = sb.toString();
+        }
+        permission = map.get("permission").toString();
+        plugin = map.get("plugin").toString();
+    }
     public CommandInfo(String name, String usage, String desc, String[] aliases, String perm, String plugin) {
         this.name = name;
         this.usgae = usage;
@@ -150,5 +176,10 @@ public class CommandInfo implements Comparable<CommandInfo> {
     @Override
     public String toString() {
         return "CommandInfo[name=" + name + "]";
+    }
+    @Override
+    public Map<String, Object> serialize() {
+        
+        return null;
     }
 }

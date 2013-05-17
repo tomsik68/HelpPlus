@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
+	<classpathentry excluding="old/sk/tomsik68/helpplus/|old/sk/tomsik68/helpplus/valueguards/|server/sk/tomsik68/helpplus/|new/|new/|old/sk/tomsik68/|server/sk/tomsik68/|old/sk/|old/|server/sk/|server/" kind="src" path=""/>
 	<classpathentry kind="src" path="new"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/jasku/dev/lib/craftbukkit.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/PermissionsGuru"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/BukkitBypass"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/CraftBukkit"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

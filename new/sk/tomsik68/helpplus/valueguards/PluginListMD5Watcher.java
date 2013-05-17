@@ -2,19 +2,26 @@ package sk.tomsik68.helpplus.valueguards;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 
 import sk.tomsik68.helpplus.CommandDatabase;
+import sk.tomsik68.helpplus.CommandInfo;
+import sk.tomsik68.helpplus.findcommands.CommandProvider;
+import sk.tomsik68.helpplus.findcommands.CommandProviders;
 
 public class PluginListMD5Watcher implements MD5ValueWatcher {
     private byte[] md5;
     private final CommandDatabase db;
-    public PluginListMD5Watcher(CommandDatabase db){
+
+    public PluginListMD5Watcher(CommandDatabase db) {
         this.db = db;
     }
+
     @Override
     public void load(File dataFolder) throws Exception {
         md5 = MD5Utils.readBytes(new File(dataFolder, "plugins.md5"));
@@ -44,7 +51,12 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
     @Override
     public void update(Server server) {
         // we need to load all commands here
-        
+        HashMap<String, CommandInfo> commands = new HashMap<String, CommandInfo>();
+        List<CommandProvider> providers = CommandProviders.getProviders();
+        for (CommandProvider provider : providers) {
+            commands.putAll(provider.getCommands(server));
+        }
+        db.insertAlot(commands.values());
     }
 
     @Override
