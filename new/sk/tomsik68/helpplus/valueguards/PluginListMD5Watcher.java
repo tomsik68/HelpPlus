@@ -1,9 +1,12 @@
 package sk.tomsik68.helpplus.valueguards;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
@@ -11,6 +14,7 @@ import org.bukkit.plugin.Plugin;
 
 import sk.tomsik68.helpplus.CommandDatabase;
 import sk.tomsik68.helpplus.CommandInfo;
+import sk.tomsik68.helpplus.HelpPlus;
 import sk.tomsik68.helpplus.findcommands.CommandProvider;
 import sk.tomsik68.helpplus.findcommands.CommandProviders;
 
@@ -29,7 +33,7 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
 
     @Override
     public boolean hasChanged() throws Exception {
-        return Arrays.equals(md5, compute(Bukkit.getServer()));
+        return !Arrays.equals(md5, compute(Bukkit.getServer()));
     }
 
     public byte[] compute(Server server) throws Exception {
@@ -49,14 +53,29 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
     }
 
     @Override
-    public void update(Server server) {
+    public void update(final Server server) {
+        HelpPlus.busy = true;
         // we need to load all commands here
-        HashMap<String, CommandInfo> commands = new HashMap<String, CommandInfo>();
+        HashSet<String> commandNames = new HashSet<String>();
         List<CommandProvider> providers = CommandProviders.getProviders();
+        ArrayList<CommandInfo> commands = new ArrayList<CommandInfo>();
         for (CommandProvider provider : providers) {
-            commands.putAll(provider.getCommands(server));
+            Map<String, CommandInfo> providedCommands = provider.getCommands(server);
+            for (Entry<String, CommandInfo> entry : providedCommands.entrySet()) {
+                if (!commandNames.contains(entry.getKey())) {
+                    commands.add(entry.getValue());
+                    commandNames.add(entry.getKey());
+                }
+
+            }
         }
-        db.insertAlot(commands.values());
+        db.insertAlot(commands);
+        try {
+            md5 = compute(server);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        HelpPlus.busy = false;
     }
 
     @Override

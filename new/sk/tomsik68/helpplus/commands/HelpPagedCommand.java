@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 
 import sk.tomsik68.helpplus.CommandDatabase;
 import sk.tomsik68.helpplus.CommandInfo;
+import sk.tomsik68.helpplus.HelpPlus;
 
 /**
  * This is never used by server. Called internally in plugin
@@ -18,27 +19,30 @@ import sk.tomsik68.helpplus.CommandInfo;
  */
 public class HelpPagedCommand implements CommandExecutor {
 
-    private static final int COMMANDS_PER_PAGE = 8;
+    private final int commandsPerPage;
     private final CommandFormatter formatter;
     private final CommandDatabase db;
+    private final ChatColor colorB;
 
     public HelpPagedCommand(CommandDatabase db, CommandFormatter format) {
+        commandsPerPage = HelpPlus.config.getCommandsPerPage();
         formatter = format;
         this.db = db;
+        colorB = HelpPlus.config.getColorB();
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
-        int page = getInteger(args[1]) - 1;
+        int page = getInteger(args[0]) - 1;
         List<CommandInfo> commandsForSender = db.getCommandsFor(sender);
-        if (page >= (Math.round(commandsForSender.size() / COMMANDS_PER_PAGE) + 1) || page < 0) {
-            sender.sendMessage(ChatColor.RED + "[HelpPlus] Page " + page + " doesn't exist!");
+        if (page >= (Math.round(commandsForSender.size() / commandsPerPage) + 1) || page < 0) {
+            sender.sendMessage(ChatColor.RED + "[HelpPlus] Page " + args[0] + " doesn't exist!");
             return true;
         }
-        sender.sendMessage(ChatColor.GOLD + "[HelpPlus] Available Commands Page " + (page + 1) + " of " + (Math.round(commandsForSender.size() / COMMANDS_PER_PAGE) + 1));
-        final int beginCommand = page * COMMANDS_PER_PAGE;
-        for (int currentCommand = beginCommand; currentCommand < beginCommand + COMMANDS_PER_PAGE && currentCommand < commandsForSender.size(); ++currentCommand) {
+        sender.sendMessage(colorB + "[HelpPlus] Available Commands Page " + (page + 1) + " of " + (Math.round(commandsForSender.size() / commandsPerPage) + 1));
+        final int beginCommand = page * commandsPerPage;
+        for (int currentCommand = beginCommand; currentCommand < beginCommand + commandsPerPage && currentCommand < commandsForSender.size(); ++currentCommand) {
             CommandInfo ci = commandsForSender.get(currentCommand);
             sender.sendMessage(formatter.format(ci));
         }

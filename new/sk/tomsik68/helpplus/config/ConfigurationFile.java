@@ -1,6 +1,8 @@
 package sk.tomsik68.helpplus.config;
 
 import java.io.File;
+
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
@@ -48,9 +50,25 @@ public class ConfigurationFile {
     }
 
     public EPermissions getPermissions() {
-        return EPermissions.parse(rawConfig.getString("perms","SP"));
+        return EPermissions.parse(rawConfig.getString("perms", "SP"));
     }
-    public int getCommandsPerPage(){
-        return rawConfig.getInt("commands-per-page",8);
+
+    public int getCommandsPerPage() {
+        return rawConfig.getInt("cmds-on-page", 8);
+    }
+
+    public ChatColor getColorA() {
+        return ChatColor.valueOf(rawConfig.getString("colors.a"));
+    }
+
+    public ChatColor getColorB() {
+        return ChatColor.valueOf(rawConfig.getString("colors.b"));
+    }
+
+    public ChatColor getColorC() {
+        return ChatColor.valueOf(rawConfig.getString("colors.c"));
+    }
+    public boolean isShowPlugin(){
+        return rawConfig.getBoolean("show.plugin");
     }
 }

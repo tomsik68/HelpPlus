@@ -6,6 +6,7 @@
  */
 package sk.tomsik68.helpplus;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 
@@ -23,10 +25,7 @@ import com.avaje.ebean.validation.NotNull;
 
 @Entity
 @Table(name = "help_plus")
-public class CommandInfo implements Comparable<CommandInfo>, ConfigurationSerializable {
-    static{
-        ConfigurationSerialization.registerClass(CommandInfo.class);
-    }
+public class CommandInfo implements Comparable<CommandInfo>{
     @Id
     @NotNull
     public String name;
@@ -67,11 +66,11 @@ public class CommandInfo implements Comparable<CommandInfo>, ConfigurationSerial
         permission = command.getPermission();
     }
     // deserialize
-    public CommandInfo(Map<String, Object> map){
-        name = map.get("name").toString();
-        usgae = map.get("usage").toString();
-        description = map.get("description").toString();
-        String[] aliases_ = ((List<String>) map.get("aliases")).toArray(new String[0]);
+    public CommandInfo(ConfigurationSection cs){
+        name = cs.getString("name");
+        usgae = cs.getString("usage");
+        description = cs.getString("description").toString();
+        String[] aliases_ = ((List<String>) cs.getStringList("aliases")).toArray(new String[0]);
         if (aliases_ != null && aliases_.length > 0) {
             StringBuilder sb = new StringBuilder();
             for (String alias : aliases_) {
@@ -82,8 +81,8 @@ public class CommandInfo implements Comparable<CommandInfo>, ConfigurationSerial
 
             this.aliases = sb.toString();
         }
-        permission = map.get("permission").toString();
-        plugin = map.get("plugin").toString();
+        permission = cs.getString("permission");
+        plugin = cs.getString("plugin");
     }
     public CommandInfo(String name, String usage, String desc, String[] aliases, String perm, String plugin) {
         this.name = name;
@@ -177,9 +176,14 @@ public class CommandInfo implements Comparable<CommandInfo>, ConfigurationSerial
     public String toString() {
         return "CommandInfo[name=" + name + "]";
     }
-    @Override
     public Map<String, Object> serialize() {
-        
-        return null;
+        HashMap<String, Object> result = new HashMap<String, Object>();
+        result.put("aliases", aliases);
+        result.put("name", name);
+        result.put("description", description);
+        result.put("usage", usgae);
+        result.put("plugin", plugin);
+        result.put("permission", permission);
+        return result;
     }
 }

@@ -25,6 +25,10 @@ public class HelpCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(HelpPlus.busy){
+            sender.sendMessage(ChatColor.GOLD+"HelpPlus is currently busy. Try again in a minute...");
+            return true;
+        }
         if (args.length == 1) {
             if (isInteger(args[0])) {
                 // /help <page>

@@ -1,2 +1,8 @@
 perms: SP
-commands-per-page: 8
+cmds-on-page: 8
+colors:
+  a: BLUE
+  b: GOLD
+  c: GREEN
+show:
+  plugin: true

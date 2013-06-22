@@ -14,16 +14,17 @@ public class CommandConfiguration {
         file = new File(dataFolder, "commands.yml");
     }
     public void saveCommand(CommandInfo ci){
-        yaml.set("commands."+ci.getName(), ci);
+        yaml.set("commands."+ci.getName(), ci.serialize());
     }
     public CommandInfo getCommand(String name){
-        return (CommandInfo) yaml.get("commands."+name);
+        return new CommandInfo(yaml.getConfigurationSection("commands."+name));
     }
     public void load(){
         yaml = YamlConfiguration.loadConfiguration(file);
         if(yaml == null){
             yaml = new YamlConfiguration();
             yaml.createSection("commands");
+            save();
         }
     }
     public void save(){

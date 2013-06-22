@@ -21,6 +21,7 @@ public class HelpPlus extends JavaPlugin {
     public static EPermissions perms;
     public static ConfigurationFile config;
     public static CommandConfiguration commandsConfig;
+    public static boolean busy = false;
     private CommandDatabase db;
     private List<? extends MD5ValueWatcher> watchers;
 
@@ -36,7 +37,10 @@ public class HelpPlus extends JavaPlugin {
         commandsConfig = new CommandConfiguration(getDataFolder());
         commandsConfig.load();
         perms = config.getPermissions();
-        getCommand("help").setExecutor(new HelpCommand(db));
+        HelpCommand command = new HelpCommand(db);
+        getCommand("help").setExecutor(command);
+        getCommand("h+").setExecutor(command);
+        getCommand("hp").setExecutor(command);
         getCommand("hpexport").setExecutor(new ExportCommand(db));
         getCommand("hplisting").setExecutor(new ListingCommand(db));
         for (MD5ValueWatcher watcher : watchers) {
@@ -52,7 +56,6 @@ public class HelpPlus extends JavaPlugin {
             }
         }
     }
-
     // Make this public
     @Override
     public void installDDL() {

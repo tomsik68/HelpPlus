@@ -2,13 +2,13 @@ package sk.tomsik68.helpplus.valueguards;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.Server;
 
 import sk.tomsik68.helpplus.CommandDatabase;
 import sk.tomsik68.helpplus.CommandInfo;
+import sk.tomsik68.helpplus.HelpPlus;
 import sk.tomsik68.helpplus.findcommands.CommandsYamlProvider;
 
 public class CommandsConfigWatcher implements MD5ValueWatcher {
@@ -38,16 +38,24 @@ public class CommandsConfigWatcher implements MD5ValueWatcher {
     }
 
     @Override
-    public void update(Server server) {
-        Map<String, CommandInfo> commands;
-        CommandsYamlProvider provider = new CommandsYamlProvider();
-        commands = provider.getCommands(server);
-        db.insertAlot(commands.values());
-        try {
-            md5 = compute();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void update(final Server server) {
+        HelpPlus.busy = true;
+        server.getScheduler().runTaskAsynchronously(server.getPluginManager().getPlugin("HelpPlus"), new Runnable() {
+
+            @Override
+            public void run() {
+                Map<String, CommandInfo> commands;
+                CommandsYamlProvider provider = new CommandsYamlProvider();
+                commands = provider.getCommands(server);
+                db.insertOverrides(commands.values());
+                try {
+                    md5 = compute();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                HelpPlus.busy = false;
+            }
+        });
     }
 
     @Override

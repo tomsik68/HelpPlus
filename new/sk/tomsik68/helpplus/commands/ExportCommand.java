@@ -62,7 +62,7 @@ public class ExportCommand implements CommandExecutor {
             // TODO export to commands.yml
             HelpPlus.commandsConfig.saveCommand(ci);
         }
-        
+        HelpPlus.commandsConfig.save();
         sender.sendMessage(ChatColor.GREEN.toString() + resultList.size() + " command(s) exported to config file.");
         return true;
     }

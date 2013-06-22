@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommand;
@@ -11,11 +12,9 @@ import org.bukkit.command.PluginCommandYamlParser;
 import org.bukkit.plugin.Plugin;
 
 import sk.tomsik68.helpplus.CommandInfo;
+import sk.tomsik68.helpplus.FakePlayer;
 
 public class PluginYamlCommandProvider implements CommandProvider {
-    static {
-        CommandProviders.registerProvider(new PluginYamlCommandProvider());
-    }
 
     @Override
     public boolean isFunctional(Server server) {
@@ -30,8 +29,26 @@ public class PluginYamlCommandProvider implements CommandProvider {
             List<Command> commands = PluginCommandYamlParser.parse(plugin);
             for (Command command : commands) {
                 result.put(command.getName(), new CommandInfo((PluginCommand) command));
+                if(command.getPermission() == null)
+                    resolvePermission(command.getName());
             }
         }
         return result;
+    }
+    private String resolvePermission(final String commandName) {
+        try {
+            FakePlayer fakie = new FakePlayer();
+            Bukkit.dispatchCommand(fakie, "/" + commandName);
+            StringBuilder sb = new StringBuilder();
+            for (String p : fakie.getPermissionsUsed()) {
+                sb = sb.append(p).append(';');
+            }
+            if (sb.length() > 0)
+                sb = sb.deleteCharAt(sb.length() - 1);
+            return sb.toString();
+        } catch (Exception e) {
+            // could not resolve permission
+        }
+        return "";
     }
 }

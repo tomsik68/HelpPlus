@@ -20,8 +20,9 @@ import org.bukkit.command.CommandSender;
 
 import sk.tomsik68.helpplus.CommandDatabase;
 import sk.tomsik68.helpplus.CommandInfo;
+import sk.tomsik68.helpplus.HelpPlus;
 
-public class ListingCommand implements Runnable, CommandExecutor {
+public class ListingCommand implements CommandExecutor {
     private final CommandDatabase db;
     private static final File listingFile = new File(new File("plugins", "HelpPlus"), "listing.txt");
 
@@ -30,12 +31,11 @@ public class ListingCommand implements Runnable, CommandExecutor {
     }
 
     @Override
-    public void run() {
-        
-    }
-
-    @Override
     public boolean onCommand(CommandSender sender, Command c, String label, String[] args) {
+        if (!HelpPlus.perms.has(sender, "helpplus.hplisting")) {
+            sender.sendMessage(ChatColor.RED + "[HelpPlus] You need to have permission to perform this command.");
+            return true;
+        }
         try {
             if (listingFile.exists())
                 listingFile.delete();
