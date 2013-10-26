@@ -11,6 +11,7 @@ import sk.tomsik68.helpplus.commands.HelpCommand;
 import sk.tomsik68.helpplus.commands.ListingCommand;
 import sk.tomsik68.helpplus.config.CommandConfiguration;
 import sk.tomsik68.helpplus.config.ConfigurationFile;
+import sk.tomsik68.helpplus.config.MessagesConfiguration;
 import sk.tomsik68.helpplus.valueguards.CommandsConfigWatcher;
 import sk.tomsik68.helpplus.valueguards.MD5ValueWatcher;
 import sk.tomsik68.helpplus.valueguards.PluginListMD5Watcher;
@@ -21,6 +22,7 @@ public class HelpPlus extends JavaPlugin {
     public static EPermissions perms;
     public static ConfigurationFile config;
     public static CommandConfiguration commandsConfig;
+    public static MessagesConfiguration messages;
     public static boolean busy = false;
     private CommandDatabase db;
     private List<? extends MD5ValueWatcher> watchers;
@@ -36,6 +38,13 @@ public class HelpPlus extends JavaPlugin {
         config.init(this);
         commandsConfig = new CommandConfiguration(getDataFolder());
         commandsConfig.load();
+        messages = new MessagesConfiguration(getDataFolder());
+        try {
+            messages.load(this);
+        } catch (Exception e) {
+            log.severe("Could not load messages. Error: ");
+            e.printStackTrace();
+        }
         perms = config.getPermissions();
         HelpCommand command = new HelpCommand(db);
         getCommand("help").setExecutor(command);
@@ -51,11 +60,12 @@ public class HelpPlus extends JavaPlugin {
                     watcher.save(getDataFolder());
                 }
             } catch (Exception e) {
-                log.severe("MD5 value comparison failed: "+watcher.getClass());
+                log.severe("MD5 value comparison failed: " + watcher.getClass());
                 e.printStackTrace();
             }
         }
     }
+
     // Make this public
     @Override
     public void installDDL() {

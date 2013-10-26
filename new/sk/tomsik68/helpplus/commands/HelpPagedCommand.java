@@ -37,10 +37,11 @@ public class HelpPagedCommand implements CommandExecutor {
         int page = getInteger(args[0]) - 1;
         List<CommandInfo> commandsForSender = db.getCommandsFor(sender);
         if (page >= (Math.round(commandsForSender.size() / commandsPerPage) + 1) || page < 0) {
-            sender.sendMessage(ChatColor.RED + "[HelpPlus] Page " + args[0] + " doesn't exist!");
+            sender.sendMessage(ChatColor.RED + "[HelpPlus] "+HelpPlus.messages.getFormattedMessage("error.page-not-found", args[0])); //Page " + args[0] + " doesn't exist!"
             return true;
         }
-        sender.sendMessage(colorB + "[HelpPlus] Available Commands Page " + (page + 1) + " of " + (Math.round(commandsForSender.size() / commandsPerPage) + 1));
+        final int pageCount = (Math.round(commandsForSender.size() / commandsPerPage) + 1);
+        sender.sendMessage(colorB + "[HelpPlus] "+HelpPlus.messages.getFormattedMessage("help.paged", page+1,pageCount)); //Available Commands Page " + (page + 1) + " of " + pageCount
         final int beginCommand = page * commandsPerPage;
         for (int currentCommand = beginCommand; currentCommand < beginCommand + commandsPerPage && currentCommand < commandsForSender.size(); ++currentCommand) {
             CommandInfo ci = commandsForSender.get(currentCommand);

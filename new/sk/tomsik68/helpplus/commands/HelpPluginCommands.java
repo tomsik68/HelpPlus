@@ -32,11 +32,12 @@ public class HelpPluginCommands implements CommandExecutor {
         else
             page = 0;
         List<CommandInfo> commands = db.getCommandsOf(sender, args[0]);
-        if (page >= (Math.round(commands.size() / commandsPerPage) + 1) || page < 0) {
-            sender.sendMessage(ChatColor.RED + "[HelpPlus] Page " + page + " doesn't exist!");
+        final int pageCount = (Math.round(commands.size() / commandsPerPage) + 1);
+        if (page >= pageCount || page < 0) {
+            sender.sendMessage(ChatColor.RED + "[HelpPlus] "+HelpPlus.messages.getFormattedMessage("error.page-not-found", args[0]));
             return true;
         }
-        sender.sendMessage(colorB + "[HelpPlus] Available Commands Page " + (page + 1) + " of " + (Math.round(commands.size() / commandsPerPage) + 1));
+        sender.sendMessage(colorB + "[HelpPlus] " + HelpPlus.messages.getFormattedMessage("help.paged", args[0], pageCount));
         final int beginCommand = page * commandsPerPage;
         for (int currentCommand = beginCommand; currentCommand < beginCommand + commandsPerPage && currentCommand < commands.size(); ++currentCommand) {
             CommandInfo ci = commands.get(currentCommand);

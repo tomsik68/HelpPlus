@@ -17,17 +17,10 @@ public class LongCommandFormatter implements CommandFormatter {
 
     @Override
     public String[] format(CommandInfo ci) {
-
-        String[] result = new String[6];
-        result[0] = colorA + "Command: " + colorC + " /" + ci.getName();
-        result[1] = colorA + "Description: " + colorC + " /" + ci.getDescription();
-        result[2] = colorA + "Usage: " + colorC + " /" + ci.getUsgae();
-        result[3] = colorA + "Permission: " + colorC + ci.getPermission();
-        if (showPlugin)
-            result[4] = colorA + "Plugin: " + colorC + ci.getPlugin();
-        else
-            result[4] = colorA + "Plugin: <unknown>";
-        result[5] = colorA + "Aliases: " + colorC + ci.getAliases();
+        String pl = ci.getPlugin();
+        if (!showPlugin)
+            pl = "<unknown>";
+        String[] result = HelpPlus.messages.getFormattedMessage("help.command.long", ci.getName(), ci.getDescription(), ci.getUsgae(), ci.getPermission(), pl, ci.getAliases(), colorA.toString(), colorC.toString()).split("/n");
         return result;
     }
 

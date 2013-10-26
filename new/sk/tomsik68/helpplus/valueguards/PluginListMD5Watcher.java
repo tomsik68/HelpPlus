@@ -3,6 +3,7 @@ package sk.tomsik68.helpplus.valueguards;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,10 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
         HelpPlus.busy = true;
         // we need to load all commands here
         HashSet<String> commandNames = new HashSet<String>();
+        List<CommandInfo> existingCommands = db.getCommandsFor(server.getConsoleSender());
+        for (CommandInfo ci : existingCommands) {
+            commandNames.add(ci.getName());
+        }
         List<CommandProvider> providers = CommandProviders.getProviders();
         ArrayList<CommandInfo> commands = new ArrayList<CommandInfo>();
         for (CommandProvider provider : providers) {
@@ -66,7 +71,6 @@ public class PluginListMD5Watcher implements MD5ValueWatcher {
                     commands.add(entry.getValue());
                     commandNames.add(entry.getKey());
                 }
-
             }
         }
         db.insertAlot(commands);
