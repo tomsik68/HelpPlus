@@ -9,6 +9,7 @@ public class CommandProviders {
     static {
         CommandProviders.registerProvider(new CommandMapCommandProvider());
         CommandProviders.registerProvider(new PluginYamlCommandProvider());
+        CommandProviders.registerProvider(new CommandsRegistrationServiceProvider());
     }
 
     public static void registerProvider(CommandProvider p) {

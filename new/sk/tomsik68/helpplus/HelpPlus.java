@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import sk.tomsik68.helpplus.commands.ExportCommand;
@@ -75,5 +77,9 @@ public class HelpPlus extends JavaPlugin {
     @Override
     public List<Class<?>> getDatabaseClasses() {
         return CommandDatabase.getClasses();
+    }
+
+    public static Plugin getInstance() {
+        return Bukkit.getPluginManager().getPlugin("HelpPlus");
     }
 }
